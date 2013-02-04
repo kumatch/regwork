@@ -1,0 +1,22 @@
+{
+  "author": "Yosuke Kumakura <kumatch@gmail.com>",
+  "name": "regwork",
+  "description": "regwork - regulated workers",
+  "version": "0.1.0",
+  "main": "./lib/regwork.js",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/kumatch/regwork.git"
+  },
+  "github": "https://github.com/kumatch/regwork",
+  "dependencies": {
+  },
+  "devDependencies": {
+    "mocha": "*",
+    "chai": "*"
+  },
+  "optionalDependencies": {},
+  "engines": {
+    "node": "*"
+  }
+}
