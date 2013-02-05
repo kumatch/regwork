@@ -20,7 +20,7 @@ describe('Regwork worker', function () {
             end();
         });
 
-        worker.start();
+        worker.start({ interval: 10 });
 
         worker.add({ number: 1 });
         worker.add({ number: 2 });
@@ -51,7 +51,7 @@ describe('Regwork worker', function () {
             done();
         }, 100);
 
-        worker.start();
+        worker.start({ interval: 10 });
     });
 
     it('should not run specific work if not start', function (done) {
@@ -80,7 +80,7 @@ describe('Regwork worker', function () {
             count += params.number;
         });
 
-        worker.start();
+        worker.start({ interval: 10 });
 
         worker.add({ number: 1 });
         worker.add({ number: 2 });
@@ -107,7 +107,7 @@ describe('Regwork worker', function () {
             end();
         });
 
-        worker.start();
+        worker.start({ interval: 10 });
 
         worker.add({ number: 1 });
         worker.add({ number: 2 });
@@ -124,21 +124,23 @@ describe('Regwork worker', function () {
 
 describe('Regwork concurrency work', function () {
     var worker;
-    var results = { foo: 0, bar: 0 };
+    var results;
     var concurrency = 10;
 
     beforeEach(function () {
+        results = { foo: 0, bar: 0 };
+
         worker = regwork(function (params, end) {
             var timer = 0;
 
             if (params.foo) {
                 results.foo += 1;
-                timer += 10;
+                timer += 50;
             }
 
             if (params.bar) {
                 results.bar += 1;
-                timer += 20;
+                timer += 75;
             }
 
             // console.log(results);
@@ -154,10 +156,30 @@ describe('Regwork concurrency work', function () {
 
     afterEach(function () {
         worker.stop();
+        worker = null;
     });
 
     it('should run concurrency less than set number', function (done) {
-        var count = 30;
+        var count = 5;
+
+        worker.start({ concurrency: concurrency, interval: 5 });
+
+        var timer = setInterval(function() {
+            if (results.foo === (count * 2) && results.bar === (count * 2)) {
+                clearInterval(timer);
+                done();
+            }
+        }, 10);
+
+        for (var i = 0; i < count; i++) {
+            worker.add({ foo: 1 });
+            worker.add({ bar: 1 });
+            worker.add({ foo: 1, bar: 1 });
+        }
+    });
+
+    it('should run concurrency less than set number (no set interval)', function (done) {
+        var count = 5;
 
         worker.start(concurrency);
 
@@ -176,7 +198,7 @@ describe('Regwork concurrency work', function () {
     });
 
     it('should run concurrency 1 (low speed)', function (done) {
-        var count = 50;
+        var count = 5;
 
         worker.start();
 
@@ -240,7 +262,7 @@ describe('Regwork original queue', function () {
 
         worker = regwork(work, queue);
 
-        worker.start();
+        worker.start({ interval: 10 });
 
         worker.add(1);
         worker.add(2);
@@ -302,7 +324,7 @@ describe('Regwork original queue and error handling', function () {
             done();
         });
 
-        worker.start();
+        worker.start({ interval: 10 });
 
         worker.add(1);
         worker.add(2);
@@ -325,7 +347,7 @@ describe('Regwork original queue and error handling', function () {
             done();
         });
 
-        worker.start();
+        worker.start({ interval: 10 });
 
         worker.add(1);
         worker.add(2);
