@@ -2,7 +2,7 @@
   "author": "Yosuke Kumakura <kumatch@gmail.com>",
   "name": "regwork",
   "description": "regwork - regulated workers",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "main": "./lib/regwork.js",
   "repository": {
     "type": "git",
