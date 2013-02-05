@@ -18,11 +18,6 @@ describe('Regwork worker', function () {
         worker = regwork(function (params, end) {
             count += params.number;
             end();
-
-            if (params.number == 0) {
-                expect(count).be.equal(10);
-                done();
-            }
         });
 
         worker.start();
@@ -31,7 +26,11 @@ describe('Regwork worker', function () {
         worker.add({ number: 2 });
         worker.add({ number: 3 });
         worker.add({ number: 4 });
-        worker.add({ number: 0 });
+
+        setTimeout(function () {
+            expect(count).be.equal(10);
+            done();
+        }, 100);
     });
 
     it('should run specific work (start after adds)', function (done) {
@@ -40,18 +39,17 @@ describe('Regwork worker', function () {
         worker = regwork(function (params, end) {
             count += params.number;
             end();
-
-            if (params.number == 0) {
-                expect(count).be.equal(10);
-                done();
-            }
         });
 
         worker.add({ number: 1 });
         worker.add({ number: 2 });
         worker.add({ number: 3 });
         worker.add({ number: 4 });
-        worker.add({ number: 0 });
+
+        setTimeout(function () {
+            expect(count).be.equal(10);
+            done();
+        }, 100);
 
         worker.start();
     });
@@ -67,7 +65,6 @@ describe('Regwork worker', function () {
         worker.add({ number: 2 });
         worker.add({ number: 3 });
         worker.add({ number: 4 });
-        worker.add({ number: 5 });
 
         setTimeout(function () {
             expect(count).be.equal(0);
@@ -89,7 +86,6 @@ describe('Regwork worker', function () {
         worker.add({ number: 2 });
         worker.add({ number: 3 });
         worker.add({ number: 4 });
-        worker.add({ number: 5 });
 
         setTimeout(function () {
             expect(count).be.equal(1);
@@ -117,7 +113,6 @@ describe('Regwork worker', function () {
         worker.add({ number: 2 });
         worker.add({ number: 3 });
         worker.add({ number: 4 });
-        worker.add({ number: 5 });
 
         setTimeout(function () {
             expect(count).be.equal(6);
@@ -129,9 +124,8 @@ describe('Regwork worker', function () {
 
 describe('Regwork concurrency work', function () {
     var worker;
-    var concurrency = 10;
-
     var results = { foo: 0, bar: 0 };
+    var concurrency = 10;
 
     beforeEach(function () {
         worker = regwork(function (params, end) {
@@ -150,8 +144,9 @@ describe('Regwork concurrency work', function () {
             // console.log(results);
             // console.log(worker.countRuns());
 
+            expect(worker.countRuns()).to.be.at.most(concurrency);
+
             setTimeout(function () {
-                expect(worker.countRuns()).to.be.at.most(concurrency);
                 end();
             }, timer);
         });
@@ -209,19 +204,22 @@ describe('Regwork original queue', function () {
         var params = [];
 
         return {
-            push: function (value) {
+            push: function (value, callback) {
                 params.push(value * 2);
+                callback();
             },
 
-            pop: function () {
+            pop: function (callback) {
                 var value = params.shift();
 
-                if (typeof value === 'undefined') return undefined;
+                if (typeof value === 'undefined') {
+                    return callback();
+                }
 
                 if (value > 0) {
-                    return (value + 10);
+                    return callback(null, value + 10);
                 } else {
-                    return 0;
+                    return callback(null, 0);
                 }
             }
         };
@@ -237,11 +235,6 @@ describe('Regwork original queue', function () {
         var work = function (value, end) {
             count += value;
             end();
-
-            if (value == 0) {
-                expect(count).be.equal(60);
-                done();
-            }
         };
         var queue = createQueue();
 
@@ -253,6 +246,92 @@ describe('Regwork original queue', function () {
         worker.add(2);
         worker.add(3);
         worker.add(4);
-        worker.add(0);
+
+        setTimeout(function () {
+            expect(count).be.equal(60);
+            done();
+        }, 100);
+    });
+});
+
+describe('Regwork original queue and error handling', function () {
+    var worker;
+
+    var createQueue = function () {
+        var params = [];
+
+        return {
+            push: function (value, callback) {
+                params.push(value);
+
+                if (value >= 0) {
+                    callback();
+                } else {
+                    callback(value);
+                }
+            },
+
+            pop: function (callback) {
+                var value = params.shift();
+
+                if (value < 10) {
+                    callback(null, value);
+                } else {
+                    callback(value);
+                }
+            }
+        };
+    };
+
+    afterEach(function () {
+        worker.stop();
+    });
+
+    it('should raise error in push', function (done) {
+        var count = 0;
+
+        var work = function (value, end) {
+            count += value;
+            end();
+        };
+        var queue = createQueue();
+
+        worker = regwork(work, queue);
+        worker.on('error', function (err) {
+            expect(err).be.equal(-10);
+            done();
+        });
+
+        worker.start();
+
+        worker.add(1);
+        worker.add(2);
+        worker.add(3);
+        worker.add(-10);
+    });
+
+    it('should raise error in pop', function (done) {
+        var count = 0;
+
+        var work = function (value, end) {
+            count += value;
+            end();
+        };
+        var queue = createQueue();
+
+        worker = regwork(work, queue);
+        worker.on('error', function (err) {
+            expect(err).be.equal(20);
+            done();
+        });
+
+        worker.start();
+
+        worker.add(1);
+        worker.add(2);
+        worker.add(3);
+        worker.add(8);
+        worker.add(9);
+        worker.add(20);
     });
 });
